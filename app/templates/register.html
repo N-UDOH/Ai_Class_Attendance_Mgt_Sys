@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Wesley University Attendance</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f4f4f9; }
+        .register-container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 400px; text-align: center; }
+        input, select, button { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { background-color: #007bff; color: white; border: none; cursor: pointer; font-size: 16px; margin-top: 15px; }
+        button:hover { background-color: #0056b3; }
+        .error { color: red; font-size: 0.9em; }
+        a { color: #007bff; text-decoration: none; }
+        .note { font-size: 0.8em; color: #666; margin-bottom: 15px; }
+        label { display: block; text-align: left; font-size: 0.9em; font-weight: bold; margin-top: 5px; }
+    </style>
+    <script>
+        function toggleFields() {
+            const role = document.getElementById('role-select').value;
+            const keyField = document.getElementById('secret-key-field');
+            const levelField = document.getElementById('level-field');
+            
+            if (role === 'student') {
+                keyField.style.display = 'block';
+                levelField.style.display = 'block';
+                // Make level required when visible
+                document.getElementById('level-input').required = true;
+            } else {
+                keyField.style.display = 'none';
+                levelField.style.display = 'none';
+                // Remove required attribute when hidden
+                document.getElementById('level-input').required = false;
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="register-container">
+        <h2>Wesley University Registration</h2>
+        <p class="note">Complete your profile details below.</p>
+        
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+
+        <form action="/register" method="post">
+            <input type="text" name="name" placeholder="Full Name" required>
+            <input type="text" name="staff_no" placeholder="Staff / Matric Number" required>
+            
+            <input type="text" name="college" placeholder="College (e.g., Natural & Applied Sciences)" required>
+            <input type="text" name="department" placeholder="Department (e.g., Computer Science)" required>
+
+            <select name="role" id="role-select" onchange="toggleFields()" required>
+                <option value="" disabled selected>Select Role</option>
+                <option value="lecturer">Lecturer</option>
+                <option value="student">Student</option>
+            </select>
+            
+            <div id="level-field" style="display:none;">
+                <select name="level" id="level-input">
+                    <option value="" disabled selected>Select Level</option>
+                    <option value="100">100 Level</option>
+                    <option value="200">200 Level</option>
+                    <option value="300">300 Level</option>
+                    <option value="400">400 Level</option>
+                    <option value="500">500 Level</option>
+                </select>
+            </div>
+
+            <div id="secret-key-field" style="display:none;">
+                <input type="password" name="secret_key" placeholder="Student Registration Key">
+            </div>
+
+            <input type="password" name="password" placeholder="Create Password" required>
+            <button type="submit">Sign Up</button>
+        </form>
+        
+        <p>Already have an account? <a href="/">Login here</a></p>
+    </div>
+    <script>document.addEventListener('DOMContentLoaded', toggleFields);</script>
+</body>
+</html>

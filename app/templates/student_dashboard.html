@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .session-card { border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 5px; }
+        .active { border-left: 5px solid blue; }
+        .message { padding: 10px; margin-bottom: 15px; border-radius: 5px; font-weight: bold; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .fail, .inactive, .duplicate { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        form input, form button { margin-top: 10px; padding: 8px; }
+    </style>
+</head>
+<body>
+    <h1>Welcome, {{ student.name }}! ({{ student.staff_no }})</h1>
+    <a href="/logout">Logout</a>
+
+    {% if status_message %}
+        {% if status_message == "success" %}
+            <div class="message success">✅ Attendance recorded successfully!</div>
+        {% elif status_message == "fail" %}
+            <div class="message fail">❌ Check-in failed! You are outside the allowed class radius.</div>
+        {% elif status_message == "duplicate" %}
+            <div class="message duplicate">⚠️ You have already checked in for this session.</div>
+        {% elif status_message == "inactive" %}
+            <div class="message inactive">⚠️ The class session is no longer active.</div>
+        {% endif %}
+    {% endif %}
+
+    <h2>📍 Active Class Sessions - Check In</h2>
+
+    {% for session in active_sessions %}
+        <div class="session-card active">
+            <h3>{{ session.course_code }} - {{ session.course_title }}</h3>
+            <p>Status: 🟢 **LIVE**</p>
+            <p>Started: {{ session.created_at.strftime('%H:%M:%S') }}</p>
+            
+            <form action="/student/check-in/{{ session.id }}" method="post">
+                <p>Enter your current GPS coordinates to check in:</p>
+                <input type="number" step="any" name="student_latitude" placeholder="Your Latitude" required><br>
+                <input type="number" step="any" name="student_longitude" placeholder="Your Longitude" required><br>
+                <button type="submit">Check In for {{ session.course_code }}</button>
+            </form>
+        </div>
+    {% else %}
+        <p>No active sessions available right now.</p>
+    {% endfor %}
+
+    <hr>
+
+    <h2>📜 Recent Attendance</h2>
+    {% if recent_attendance %}
+        <ul>
+            {% for record in recent_attendance %}
+                <li>Session ID: **{{ record.session_id }}** at {{ record.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No recent attendance records found.</p>
+    {% endif %}
+
+</body>
+</html>

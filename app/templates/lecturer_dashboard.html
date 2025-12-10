@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecturer Dashboard</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 800px; margin: auto; }
+        
+        /* New Header Styling */
+        .header-section {
+            text-align: center;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            margin-bottom: 20px;
+        }
+        .header-section h1 {
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-size: 24px;
+        }
+        .header-section p {
+            color: #555;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .greeting {
+            color: #007bff; /* Blue color for the greeting */
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        .session-card { border: 1px solid #ccc; padding: 15px; margin-bottom: 10px; border-radius: 5px; }
+        .active { border-left: 5px solid green; }
+        .closed { border-left: 5px solid red; opacity: 0.8; }
+        
+        /* Style for buttons */
+        .session-card form, .session-card a { display: inline-block; margin-right: 10px; } 
+        form input, form button { margin-top: 10px; padding: 8px; }
+
+        /* Logout Link Style */
+        .logout-link {
+            float: right;
+            text-decoration: none;
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-section">
+        <h1>Wesley University AI Attendance Management System</h1>
+        <p><strong>Built by N.A Udoh</strong></p>
+        <p>Department of Computer Science</p>
+        
+        <h2 class="greeting">Welcome, Esteemed Lecturer!</h2>
+    </div>
+
+    <a href="/logout" class="logout-link">Logout</a>
+    <div style="clear: both;"></div> <hr>
+
+    <h3>📊 Create New Attendance Session</h3>
+    <form action="/lecturer/create-session" method="post">
+        <input type="text" name="course_code" placeholder="Course Code (e.g., CSC401)" required><br>
+        <input type="text" name="course_title" placeholder="Course Title" required><br>
+        <input type="number" step="any" name="latitude" placeholder="Latitude (e.g., 9.0765)" required><br>
+        <input type="number" step="any" name="longitude" placeholder="Longitude (e.g., 7.3986)" required><br>
+        <input type="number" step="1" name="radius_meters" placeholder="Radius (Meters, e.g., 50)" required><br>
+        <button type="submit" style="background-color: #28a745; color: white; border: none; cursor: pointer;">Start Session</button>
+    </form>
+
+    <hr>
+
+    <h3>🕒 Active & Recent Sessions</h3>
+    {% for session in sessions %}
+        <div class="session-card {% if session.is_active == 1 %}active{% else %}closed{% endif %}">
+            <h3>{{ session.course_code }} - {{ session.course_title }}</h3>
+            <p><strong>Status:</strong> {% if session.is_active == 1 %}🟢 **ACTIVE**{% else %}🔴 **CLOSED**{% endif %}</p>
+            <p>Started: {{ session.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+            <p>Location: {{ session.latitude }}, {{ session.longitude }} (Radius: {{ session.radius_meters }}m)</p>
+            <p>Session ID: <code>{{ session.id }}</code></p>
+            
+            {% if session.is_active == 1 %}
+                <form action="/lecturer/close-session/{{ session.id }}" method="post">
+                    <button type="submit" style="cursor: pointer;">End Session</button>
+                </form>
+            {% else %}
+                <a href="/lecturer/report/{{ session.id }}">
+                    <button style="cursor: pointer;">View Report</button>
+                </a>
+            {% endif %}
+        </div>
+    {% endfor %}
+
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Report</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        
+        /* Style for the Download Button */
+        .btn-download {
+            background-color: #008CBA; /* Blue */
+            color: white;
+            padding: 12px 24px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin-top: 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-download:hover {
+            background-color: #007B9E; /* Darker Blue on hover */
+        }
+    </style>
+</head>
+<body>
+    <a href="/lecturer/dashboard">← Back to Dashboard</a>
+    <h1>Attendance Report</h1>
+    
+    <h2>{{ session.course_code }} - {{ session.course_title }}</h2>
+    <p>Session ID: <code>{{ session.id }}</code> | Status: 🔴 Closed</p>
+
+    {% if report_list %}
+        <h3>Students Attended (Total: {{ report_list | length }})</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Matric/Staff No.</th>
+                    <th>Student Name</th>
+                    <th>Check-in Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in report_list %}
+                <tr>
+                    <td>{{ record.staff_no }}</td>
+                    <td>{{ record.name }}</td>
+                    <td>{{ record.timestamp }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <a href="/lecturer/export/{{ session.id }}" class="btn-download">
+            📥 Download CSV Report
+        </a>
+
+    {% else %}
+        <p>No students checked in for this session.</p>
+    {% endif %}
+
+</body>
+</html>

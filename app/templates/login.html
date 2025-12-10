@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Attendance Login</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f4f4f9; }
+        .login-container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 300px; text-align: center; }
+        
+        /* New Header Styles */
+        .university-name { color: #2c3e50; font-size: 1.5em; margin-bottom: 5px; font-weight: bold; }
+        .login-title { color: #007bff; font-size: 1.2em; margin-top: 0; margin-bottom: 20px; }
+        
+        input, button { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { background-color: #007bff; color: white; border: none; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #0056b3; }
+        .error { color: red; font-size: 0.9em; margin-top: 15px; }
+        a { color: #007bff; text-decoration: none; }
+        label { text-align: left; display: block; margin-bottom: 5px; font-weight: bold;}
+        
+        /* Builder Footer Style */
+        .builder-footer { font-size: 0.75em; color: #888; margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="university-name">Wesley University, Ondo</div>
+        <div class="login-title">Class Attendance Login</div>
+        
+        <form method="post" action="/login">
+            <label for="staff_no">Staff / Matric No:</label>
+            <input id="staff_no" name="staff_no" required><br>
+
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required><br>
+
+            <button type="submit">Login</button>
+        </form>
+
+        <p class="error">{{ error }}</p>
+
+        <p style="margin-top: 15px;">
+            Don't have an account? <a href="/register">Sign Up here</a>
+        </p>
+
+        <div class="builder-footer">
+            Built by N.A Udoh, Department of Computer Science
+        </div>
+    </div>
+</body>
+</html>
