@@ -7,7 +7,6 @@
     <style>
         body { font-family: sans-serif; padding: 20px; max-width: 800px; margin: auto; }
         
-        /* New Header Styling */
         .header-section {
             text-align: center;
             background-color: #f8f9fa;
@@ -16,38 +15,63 @@
             border: 1px solid #ddd;
             margin-bottom: 20px;
         }
-        .header-section h1 {
-            color: #2c3e50;
-            margin-bottom: 5px;
-            font-size: 24px;
-        }
-        .header-section p {
-            color: #555;
-            margin: 5px 0;
-            font-size: 14px;
-        }
-        .greeting {
-            color: #007bff; /* Blue color for the greeting */
-            margin-top: 15px;
-            font-weight: bold;
-        }
+        .header-section h1 { color: #2c3e50; margin-bottom: 5px; font-size: 24px; }
+        .header-section p { color: #555; margin: 5px 0; font-size: 14px; }
+        .greeting { color: #007bff; margin-top: 15px; font-weight: bold; }
 
         .session-card { border: 1px solid #ccc; padding: 15px; margin-bottom: 10px; border-radius: 5px; }
         .active { border-left: 5px solid green; }
         .closed { border-left: 5px solid red; opacity: 0.8; }
         
-        /* Style for buttons */
         .session-card form, .session-card a { display: inline-block; margin-right: 10px; } 
         form input, form button { margin-top: 10px; padding: 8px; }
 
-        /* Logout Link Style */
-        .logout-link {
-            float: right;
-            text-decoration: none;
-            color: red;
-            font-weight: bold;
+        .logout-link { float: right; text-decoration: none; color: red; font-weight: bold; }
+
+        /* NEW: Style for the Location Button */
+        .geo-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-bottom: 10px;
         }
+        .geo-btn:hover { background-color: #5a6268; }
     </style>
+    
+    <script>
+        function getLocation() {
+            const btn = document.getElementById('geo-btn');
+            const latInput = document.getElementById('lat');
+            const longInput = document.getElementById('long');
+            const status = document.getElementById('geo-status');
+
+            if (!navigator.geolocation) {
+                status.innerHTML = "❌ Geolocation is not supported by your browser";
+                return;
+            }
+
+            status.innerHTML = "⏳ Locating...";
+            btn.disabled = true;
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    latInput.value = position.coords.latitude;
+                    longInput.value = position.coords.longitude;
+                    status.innerHTML = "✅ Location Locked!";
+                    status.style.color = "green";
+                    btn.disabled = false;
+                },
+                (error) => {
+                    status.innerHTML = "❌ Error: " + error.message;
+                    status.style.color = "red";
+                    btn.disabled = false;
+                }
+            );
+        }
+    </script>
 </head>
 <body>
 
@@ -55,19 +79,27 @@
         <h1>Wesley University AI Attendance Management System</h1>
         <p><strong>Built by N.A Udoh</strong></p>
         <p>Department of Computer Science</p>
-        
         <h2 class="greeting">Welcome, Esteemed Lecturer!</h2>
     </div>
 
     <a href="/logout" class="logout-link">Logout</a>
-    <div style="clear: both;"></div> <hr>
+    <div style="clear: both;"></div>
+    
+    <hr>
 
     <h3>📊 Create New Attendance Session</h3>
     <form action="/lecturer/create-session" method="post">
         <input type="text" name="course_code" placeholder="Course Code (e.g., CSC401)" required><br>
         <input type="text" name="course_title" placeholder="Course Title" required><br>
-        <input type="number" step="any" name="latitude" placeholder="Latitude (e.g., 9.0765)" required><br>
-        <input type="number" step="any" name="longitude" placeholder="Longitude (e.g., 7.3986)" required><br>
+        
+        <p><strong>Class Location:</strong></p>
+        <button type="button" id="geo-btn" class="geo-btn" onclick="getLocation()">📍 Detect My Current Location</button>
+        <span id="geo-status" style="font-size: 0.9em; margin-left: 10px;"></span>
+        <br>
+
+        <input type="number" step="any" id="lat" name="latitude" placeholder="Latitude" required readonly>
+        <input type="number" step="any" id="long" name="longitude" placeholder="Longitude" required readonly><br>
+        
         <input type="number" step="1" name="radius_meters" placeholder="Radius (Meters, e.g., 50)" required><br>
         <button type="submit" style="background-color: #28a745; color: white; border: none; cursor: pointer;">Start Session</button>
     </form>
