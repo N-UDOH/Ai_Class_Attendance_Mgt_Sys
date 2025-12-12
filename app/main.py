@@ -44,11 +44,11 @@ def get_db():
         db.close()
 
 # ==========================================
-# 🎓 STUDENT DASHBOARD ROUTE (FIXED)
+# 🎓 STUDENT DASHBOARD ROUTE (BULLETPROOF FIX)
 # ==========================================
 @app.get("/student/dashboard")
 async def student_dashboard(request: Request, db: Session = Depends(get_db)):
-    # 1. Check if logged in
+    # 1. Check if session cookie exists
     user_id = request.session.get("user_id")
     if not user_id or request.session.get("user_role") != "student":
         return RedirectResponse("/", status_code=status.HTTP_302_FOUND)
@@ -56,6 +56,11 @@ async def student_dashboard(request: Request, db: Session = Depends(get_db)):
     # 2. Get Student Info
     student = db.query(User).filter(User.id == user_id).first()
     
+    # 🚨 GHOST COOKIE FIX: If cookie exists but User is missing (deleted DB)
+    if not student:
+        request.session.clear()  # Kill the ghost cookie
+        return RedirectResponse("/", status_code=status.HTTP_302_FOUND)
+
     # 3. Find Active Session (if any)
     active_session = db.query(ClassSession).filter(ClassSession.is_active == True).first()
     
@@ -68,7 +73,7 @@ async def student_dashboard(request: Request, db: Session = Depends(get_db)):
     # 5. Render Page with USER Data
     return templates.TemplateResponse("student_dashboard.html", {
         "request": request,
-        "user": student,         # <--- CRITICAL FIX: Sends student info to HTML
+        "user": student,         # Sends student info to HTML
         "active_session": active_session
     })
 
