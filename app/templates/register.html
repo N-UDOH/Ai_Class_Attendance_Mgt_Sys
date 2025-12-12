@@ -3,39 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up - Wesley University Attendance</title>
+    <title>Register - Wesley University</title>
     <style>
         body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f4f4f9; }
-        .register-container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 400px; text-align: center; }
-        input, select, button { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        button { background-color: #007bff; color: white; border: none; cursor: pointer; font-size: 16px; margin-top: 15px; }
-        button:hover { background-color: #0056b3; }
-        .error { color: red; font-size: 0.9em; }
-        a { color: #007bff; text-decoration: none; }
-        .note { font-size: 0.8em; color: #666; margin-bottom: 15px; }
+        .container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 350px; }
+        h2 { text-align: center; color: #333; }
+        input, select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #218838; }
+        .error { color: red; font-size: 0.9em; text-align: center; }
+        .link { display: block; text-align: center; margin-top: 15px; text-decoration: none; color: #007bff; }
     </style>
     <script>
         function toggleFields() {
-            const role = document.getElementById('role-select').value;
-            const keyField = document.getElementById('secret-key-field');
-            const levelField = document.getElementById('level-field');
-            
-            if (role === 'student') {
-                keyField.style.display = 'block';
-                levelField.style.display = 'block';
-                document.getElementById('level-input').required = true;
+            var role = document.getElementById("role").value;
+            var studentFields = document.getElementById("student-fields");
+            if (role === "student") {
+                studentFields.style.display = "block";
+                document.getElementById("secret_key").required = true;
+                document.getElementById("level").required = true;
             } else {
-                keyField.style.display = 'none';
-                levelField.style.display = 'none';
-                document.getElementById('level-input').required = false;
+                studentFields.style.display = "none";
+                document.getElementById("secret_key").required = false;
+                document.getElementById("level").required = false;
             }
         }
     </script>
 </head>
 <body>
-    <div class="register-container">
-        <h2>Wesley University Registration</h2>
-        <p class="note">Complete your profile details below.</p>
+
+    <div class="container">
+        <h2>Sign Up</h2>
         
         {% if error %}
             <p class="error">{{ error }}</p>
@@ -43,40 +41,48 @@
 
         <form action="/register" method="post">
             <input type="text" name="name" placeholder="Full Name" required>
-            <input type="text" name="staff_no" placeholder="Staff / Matric Number" required>
+            <input type="text" name="staff_no" placeholder="Matric No / Staff ID" required>
             
-            <input type="email" name="email" placeholder="Email Address (e.g., name@wesleyuni.edu.ng)" required>
-            
-            <input type="text" name="college" placeholder="College (e.g., Natural & Applied Sciences)" required>
-            <input type="text" name="department" placeholder="Department (e.g., Computer Science)" required>
-
-            <select name="role" id="role-select" onchange="toggleFields()" required>
-                <option value="" disabled selected>Select Role</option>
-                <option value="lecturer">Lecturer</option>
-                <option value="student">Student</option>
+            <select name="college" required>
+                <option value="" disabled selected>Select College</option>
+                <option value="Science">College of Science</option>
+                <option value="Arts">College of Arts</option>
+                <option value="Social Sciences">College of Social Sciences</option>
             </select>
-            
-            <div id="level-field" style="display:none;">
-                <select name="level" id="level-input">
+
+            <select name="department" required>
+                <option value="" disabled selected>Select Department</option>
+                <option value="Computer Science">Computer Science</option>
+                <option value="Biochemistry">Biochemistry</option>
+                <option value="Economics">Economics</option>
+                <option value="Mass Comm">Mass Communication</option>
+            </select>
+
+            <select name="role" id="role" onchange="toggleFields()" required>
+                <option value="" disabled selected>Select Role</option>
+                <option value="student">Student</option>
+                <option value="lecturer">Lecturer</option>
+            </select>
+
+            <div id="student-fields" style="display: none;">
+                <select name="level" id="level">
                     <option value="" disabled selected>Select Level</option>
                     <option value="100">100 Level</option>
                     <option value="200">200 Level</option>
                     <option value="300">300 Level</option>
                     <option value="400">400 Level</option>
-                    <option value="500">500 Level</option>
                 </select>
-            </div>
-
-            <div id="secret-key-field" style="display:none;">
-                <input type="password" name="secret_key" placeholder="Student Registration Key">
+                <input type="password" name="secret_key" id="secret_key" placeholder="Student Registration Key">
+                <small style="color: #666; display: block; margin-bottom: 5px;">(Key: WESLEY-CS-2026)</small>
             </div>
 
             <input type="password" name="password" placeholder="Create Password" required>
-            <button type="submit">Sign Up</button>
+            
+            <button type="submit">Register</button>
         </form>
-        
-        <p>Already have an account? <a href="/">Login here</a></p>
+
+        <a href="/" class="link">Already have an account? Login</a>
     </div>
-    <script>document.addEventListener('DOMContentLoaded', toggleFields);</script>
+
 </body>
 </html>
