@@ -8,9 +8,9 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String)
     staff_no = Column(String, unique=True, index=True)
-    email = Column(String, nullable=True)  # ✅ Contains the Email
+    # email removed
     role = Column(String)
-    password = Column(String)              # ✅ Contains the Password
+    password = Column(String)  # ✅ WE MUST KEEP THIS!
     college = Column(String)
     department = Column(String)
     level = Column(String, nullable=True)

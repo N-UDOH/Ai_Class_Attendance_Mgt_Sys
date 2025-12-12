@@ -10,7 +10,6 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# --- DATABASE DEPENDENCY ---
 def get_db():
     db = SessionLocal()
     try:
@@ -18,7 +17,6 @@ def get_db():
     finally:
         db.close()
 
-# REGISTRATION KEY FOR STUDENTS
 STUDENT_REGISTRATION_KEY = "WESLEY-CS-2026"
 
 @router.post("/register")
@@ -26,16 +24,16 @@ async def register(
     request: Request,
     name: str = Form(...),
     staff_no: str = Form(...),
-    email: str = Form(...),        # ✅ NEW: Accept Email from Form
+    # email removed
     role: str = Form(...),
     password: str = Form(...),
     college: str = Form(...),
     department: str = Form(...),
-    level: str = Form(None),       # Optional (only for students)
-    secret_key: str = Form(None),  # Optional (only for students)
+    level: str = Form(None),
+    secret_key: str = Form(None),
     db: Session = Depends(get_db)
 ):
-    # 1. Check if User Already Exists (by Staff No)
+    # 1. Check if User Exists
     existing_user = db.query(User).filter(User.staff_no == staff_no).first()
     if existing_user:
         return templates.TemplateResponse("register.html", {
@@ -48,21 +46,14 @@ async def register(
         if secret_key != STUDENT_REGISTRATION_KEY:
             return templates.TemplateResponse("register.html", {
                 "request": request, 
-                "error": "❌ Invalid Student Registration Key! Ask your HOD."
-            })
-        if not level:
-             return templates.TemplateResponse("register.html", {
-                "request": request, 
-                "error": "❌ Students must select a Level (100-500)."
+                "error": "❌ Invalid Student Registration Key!"
             })
 
-    # 3. Create New User
+    # 3. Create User (No Email)
     hashed_password = pwd_context.hash(password)
-    
     new_user = User(
         name=name,
         staff_no=staff_no,
-        email=email,               # ✅ NEW: Save Email to Database
         role=role,
         password=hashed_password,
         college=college,
@@ -74,7 +65,6 @@ async def register(
     db.commit()
     db.refresh(new_user)
 
-    # 4. Success -> Redirect to Login
     return templates.TemplateResponse("login.html", {
         "request": request, 
         "success": "✅ Registration Successful! Please Login."
@@ -95,12 +85,10 @@ async def login(
             "error": "❌ Invalid Staff Number or Password"
         })
 
-    # Create Session
     request.session["user_id"] = user.id
     request.session["user_role"] = user.role
     request.session["user_name"] = user.name
 
-    # Redirect based on Role
     if user.role == "lecturer":
         return RedirectResponse("/lecturer/dashboard", status_code=status.HTTP_302_FOUND)
     else:
