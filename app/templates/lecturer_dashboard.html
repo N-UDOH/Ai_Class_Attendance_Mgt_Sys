@@ -28,7 +28,7 @@
 
         .logout-link { float: right; text-decoration: none; color: red; font-weight: bold; }
 
-        /* NEW: Style for the Location Button */
+        /* Style for the Location Button */
         .geo-btn {
             background-color: #6c757d;
             color: white;
@@ -119,6 +119,15 @@
                 <form action="/lecturer/close-session/{{ session.id }}" method="post">
                     <button type="submit" style="cursor: pointer;">End Session</button>
                 </form>
+
+                <div style="margin-top: 15px; background: #eee; padding: 10px; border-radius: 5px;">
+                    <p style="margin: 0 0 5px 0; font-size: 0.9em; font-weight: bold;">🔧 Manual Add (Faulty Phone)</p>
+                    <form action="/lecturer/manual-add/{{ session.id }}" method="post">
+                        <input type="text" name="staff_no" placeholder="Enter Matric No" required style="width: 200px; padding: 5px;">
+                        <button type="submit" style="padding: 5px; background-color: #6c757d; color: white; border: none; border-radius: 3px; cursor: pointer;">Add Student</button>
+                    </form>
+                </div>
+
             {% else %}
                 <a href="/lecturer/report/{{ session.id }}">
                     <button style="cursor: pointer;">View Report</button>
