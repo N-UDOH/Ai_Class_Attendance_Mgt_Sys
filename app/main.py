@@ -73,7 +73,7 @@ async def student_dashboard(request: Request, db: Session = Depends(get_db)):
     # 5. Render Page with USER Data
     return templates.TemplateResponse("student_dashboard.html", {
         "request": request,
-        "user": student,         # Sends student info to HTML
+        "user": student,         # <--- THIS IS THE FIX (Line 80)
         "active_session": active_session
     })
 
