@@ -1,113 +1,112 @@
-from fastapi import APIRouter, Request, Form, Depends, status
+from fastapi import APIRouter, Request, Depends, Form, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from haversine import haversine, Unit
 from datetime import datetime
-
-from app.db import SessionLocal
+from haversine import haversine
+from app.db import get_db
 from app.models import User, ClassSession, Attendance
-from app.dependencies import get_current_user
 
-router = APIRouter(prefix="/student", tags=["student"])
+router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# ==========================================
+# 🎓 STUDENT DASHBOARD (SAFE MODE)
+# ==========================================
+@router.get("/student/dashboard", response_class=HTMLResponse)
+async def student_dashboard(request: Request, db: Session = Depends(get_db)):
+    # 1. Check Login
+    user_id = request.session.get("user_id")
+    if not user_id or request.session.get("user_role") != "student":
+        return RedirectResponse("/", status_code=status.HTTP_302_FOUND)
 
-# --- Core Logic: Distance Calculation ---
-def calculate_distance(lat1, lon1, lat2, lon2):
-    """Calculates the distance (in meters) between two points using Haversine."""
-    point1 = (lat1, lon1)
-    point2 = (lat2, lon2)
-    distance_km = haversine(point1, point2, unit=Unit.KILOMETERS)
-    distance_meters = distance_km * 1000
-    return distance_meters
+    # 2. Get Student (Ghost Cookie Protection)
+    student = db.query(User).filter(User.id == user_id).first()
+    if not student:
+        request.session.clear()
+        return RedirectResponse("/", status_code=status.HTTP_302_FOUND)
 
-
-# --- 1. Dashboard/Check-in View (GET) ---
-@router.get("/dashboard", response_class=HTMLResponse)
-async def student_dashboard(
-    request: Request, 
-    db: Session = Depends(get_db),
-    student: User = Depends(get_current_user) # AUTH CHECK
-):
-    # Enforce role
-    if student.role != "student":
-        return RedirectResponse("/lecturer/dashboard", status_code=status.HTTP_302_FOUND)
-
-    # Extract status message from URL query parameters (for user feedback)
-    status_message = request.query_params.get("status")
-
-    active_sessions = db.query(ClassSession).filter(
-        ClassSession.is_active == 1
-    ).all()
+    # 3. Find Active Session
+    active_session = db.query(ClassSession).filter(ClassSession.is_active == True).first()
     
-    recent_attendance = db.query(Attendance).filter(
-        Attendance.user_id == student.id
-    ).order_by(Attendance.timestamp.desc()).limit(10).all()
+    # 4. Get Lecturer Name Safely (Separate Variable)
+    lecturer_name = "Unknown Lecturer" 
+    if active_session:
+        lecturer = db.query(User).filter(User.id == active_session.user_id).first()
+        if lecturer:
+            lecturer_name = lecturer.name
 
+    # 5. Render Page (Sending items separately)
     return templates.TemplateResponse("student_dashboard.html", {
         "request": request,
-        "student": student,
-        "active_sessions": active_sessions,
-        "recent_attendance": recent_attendance,
-        "status_message": status_message # Pass status message to template
+        "user": student,                 # ✅ Fixed: Sending User
+        "active_session": active_session,
+        "lecturer_name": lecturer_name   # ✅ Fixed: Sending Name separately
     })
 
-
-# --- 2. Check-in (POST) ---
-@router.post("/check-in/{session_id}", response_class=RedirectResponse)
+# ==========================================
+# 🚀 CHECK-IN ROUTE
+# ==========================================
+@router.post("/student/check-in/{session_id}")
 async def check_in(
-    session_id: int,
-    request: Request,
-    student_latitude: float = Form(...),
-    student_longitude: float = Form(...),
-    db: Session = Depends(get_db),
-    student: User = Depends(get_current_user) # AUTH CHECK
+    request: Request, 
+    session_id: int, 
+    lat: float = Form(...), 
+    long: float = Form(...), 
+    db: Session = Depends(get_db)
 ):
-    if student.role != "student":
-        return RedirectResponse("/lecturer/dashboard", status_code=status.HTTP_302_FOUND)
+    user_id = request.session.get("user_id")
+    if not user_id:
+        return RedirectResponse("/", status_code=status.HTTP_302_FOUND)
 
+    # A. Get User and Session
+    student = db.query(User).filter(User.id == user_id).first()
     session = db.query(ClassSession).filter(ClassSession.id == session_id).first()
 
-    # 1. Check if session is active
     if not session or session.is_active == 0:
-        return RedirectResponse("/student/dashboard?status=inactive", status_code=status.HTTP_302_FOUND)
+        return templates.TemplateResponse("student_dashboard.html", {
+            "request": request, "user": student, "error": "Session is closed or invalid."
+        })
 
-    # 2. Check for duplicate attendance
-    already_checked_in = db.query(Attendance).filter(
-        Attendance.user_id == student.id,
-        Attendance.session_id == session_id
+    # B. SECURITY CHECK: Device Fingerprinting
+    client_ip = request.client.host
+    user_agent = request.headers.get('user-agent')
+
+    duplicate_device = db.query(Attendance).filter(
+        Attendance.session_id == session_id,
+        Attendance.ip_address == client_ip,
+        Attendance.device_info == user_agent,
+        Attendance.user_id != user_id
     ).first()
 
-    if already_checked_in:
-        return RedirectResponse("/student/dashboard?status=duplicate", status_code=status.HTTP_302_FOUND) 
-        
-    # 3. Calculate distance
-    distance_to_class = calculate_distance(
-        session.latitude, 
-        session.longitude,
-        student_latitude, 
-        student_longitude
-    )
+    if duplicate_device:
+        return templates.TemplateResponse("student_dashboard.html", {
+            "request": request, 
+            "user": student, 
+            "error": "⛔ SECURITY ALERT: This device has already been used to sign in another student."
+        })
+
+    # C. Calculate Distance
+    distance = haversine((lat, long), (session.latitude, session.longitude)) * 1000
     
-    # 4. Core AI/Geofencing Check
-    if distance_to_class <= session.radius_meters:
-        # Mark Attendance
-        new_attendance = Attendance(
-            session_id=session_id,
-            user_id=student.id,
-            timestamp=datetime.utcnow()
+    if distance > session.radius_meters:
+        return templates.TemplateResponse("student_dashboard.html", {
+            "request": request, "user": student, 
+            "error": f"❌ You are too far! Distance: {int(distance)}m. Get closer to class."
+        })
+
+    # D. Mark Attendance
+    existing = db.query(Attendance).filter(Attendance.user_id == user_id, Attendance.session_id == session_id).first()
+    if not existing:
+        new_record = Attendance(
+            session_id=session_id, 
+            user_id=user_id, 
+            timestamp=datetime.now(),
+            ip_address=client_ip,
+            device_info=user_agent,
+            is_manual=False
         )
-        db.add(new_attendance)
+        db.add(new_record)
         db.commit()
-        
-        return RedirectResponse("/student/dashboard?status=success", status_code=status.HTTP_302_FOUND)
-    else:
-        # Distance check failed
-        return RedirectResponse("/student/dashboard?status=fail", status_code=status.HTTP_302_FOUND)
+
+    return templates.TemplateResponse("success.html", {"request": request, "user": student})
