@@ -6,6 +6,10 @@ from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy.orm import Session
 from datetime import datetime
 from haversine import haversine
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import os
 
 from app.db import engine, Base, SessionLocal
 from app.models import User, ClassSession, Attendance
@@ -38,6 +42,35 @@ def get_db():
         yield db
     finally:
         db.close()
+
+# ==========================================
+# 🎓 STUDENT DASHBOARD ROUTE (FIXED)
+# ==========================================
+@app.get("/student/dashboard")
+async def student_dashboard(request: Request, db: Session = Depends(get_db)):
+    # 1. Check if logged in
+    user_id = request.session.get("user_id")
+    if not user_id or request.session.get("user_role") != "student":
+        return RedirectResponse("/", status_code=status.HTTP_302_FOUND)
+
+    # 2. Get Student Info
+    student = db.query(User).filter(User.id == user_id).first()
+    
+    # 3. Find Active Session (if any)
+    active_session = db.query(ClassSession).filter(ClassSession.is_active == True).first()
+    
+    # 4. Attach Lecturer Name if a session exists
+    if active_session:
+        lecturer = db.query(User).filter(User.id == active_session.user_id).first()
+        # We perform a "monkey patch" to add the name to the object temporarily
+        active_session.lecturer_name = lecturer.name if lecturer else "Unknown Lecturer"
+
+    # 5. Render Page with USER Data
+    return templates.TemplateResponse("student_dashboard.html", {
+        "request": request,
+        "user": student,         # <--- CRITICAL FIX: Sends student info to HTML
+        "active_session": active_session
+    })
 
 # ==========================================
 # 🚀 FEATURE 1: STRICT SECURITY CHECK-IN
@@ -129,7 +162,7 @@ async def manual_add_student(
     student = db.query(User).filter(User.staff_no == staff_no, User.role == "student").first()
     
     if not student:
-        # If student not found, just reload dashboard (you could add an error message here)
+        # If student not found, just reload dashboard
         return RedirectResponse("/lecturer/dashboard", status_code=status.HTTP_302_FOUND)
 
     # Check if already present
@@ -214,6 +247,101 @@ async def view_report(request: Request, session_id: int, db: Session = Depends(g
         "session": session,
         "students": student_data,
         "total_classes": total_classes_count
+    })
+
+
+# ==========================================
+# 📧 FEATURE 4: WEEKLY RISK ALERTS (REAL GMAIL SENDING)
+# ==========================================
+@app.post("/lecturer/send-alerts/{session_id}")
+async def send_risk_alerts(request: Request, session_id: int, db: Session = Depends(get_db)):
+    # 1. Verify Lecturer
+    if request.session.get("user_role") != "lecturer":
+        return RedirectResponse("/", status_code=status.HTTP_302_FOUND)
+
+    # 2. Get Session & Lecturer Info
+    session = db.query(ClassSession).filter(ClassSession.id == session_id).first()
+    lecturer = db.query(User).filter(User.id == request.session.get("user_id")).first()
+    
+    # 3. Credentials from Render Environment
+    SENDER_EMAIL = os.getenv("MAIL_USERNAME")
+    SENDER_PASSWORD = os.getenv("MAIL_PASSWORD")
+
+    if not SENDER_EMAIL or not SENDER_PASSWORD:
+        return templates.TemplateResponse("lecturer_dashboard.html", {
+            "request": request, "user": lecturer,
+            "sessions": db.query(ClassSession).filter(ClassSession.user_id == lecturer.id).all(),
+            "error": "❌ Error: System Email is not configured in Render Environment!"
+        })
+
+    # 4. Find Students
+    attendees = db.query(User).join(Attendance).join(ClassSession)\
+                  .filter(ClassSession.course_code == session.course_code).distinct().all()
+
+    alerts_sent = 0
+    
+    # 5. Connect to Gmail Server
+    try:
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.starttls()
+        server.login(SENDER_EMAIL, SENDER_PASSWORD)
+    except Exception as e:
+        return templates.TemplateResponse("lecturer_dashboard.html", {
+            "request": request, "user": lecturer,
+            "sessions": db.query(ClassSession).filter(ClassSession.user_id == lecturer.id).all(),
+            "error": f"❌ Email Connection Failed: {str(e)}"
+        })
+
+    # 6. Analyze & Send
+    total_classes = db.query(ClassSession).filter(
+        ClassSession.course_code == session.course_code,
+        ClassSession.user_id == lecturer.id
+    ).count()
+    if total_classes == 0: total_classes = 1
+
+    for student in attendees:
+        attendance_count = db.query(Attendance).join(ClassSession)\
+            .filter(Attendance.user_id == student.id, ClassSession.course_code == session.course_code).count()
+        
+        percent = (attendance_count / total_classes) * 100
+
+        if percent < 50:
+            alerts_sent += 1
+            
+            # Create Email
+            msg = MIMEMultipart()
+            msg["From"] = SENDER_EMAIL
+            msg["To"] = student.email
+            msg["Cc"] = lecturer.email
+            msg["Subject"] = f"⚠️ ACADEMIC WARNING: {session.course_code}"
+
+            body = f"""
+            Dear {student.name},
+
+            Your attendance in {session.course_code} has dropped to {percent:.1f}%.
+            This is below the required threshold.
+
+            Please contact your lecturer, {lecturer.name}, immediately to discuss your standing.
+
+            Regards,
+            Wesley University AI Attendance System
+            """
+            msg.attach(MIMEText(body, "plain"))
+
+            # Send to Student AND Cc Lecturer
+            recipients = [student.email, lecturer.email]
+            try:
+                server.sendmail(SENDER_EMAIL, recipients, msg.as_string())
+            except Exception as e:
+                print(f"Failed to send to {student.name}: {e}")
+
+    server.quit()
+
+    return templates.TemplateResponse("lecturer_dashboard.html", {
+        "request": request,
+        "user": lecturer,
+        "sessions": db.query(ClassSession).filter(ClassSession.user_id == lecturer.id).order_by(ClassSession.created_at.desc()).all(),
+        "alert_success": f"✅ Emails Sent! {alerts_sent} at-risk students have been notified (Copy sent to you)."
     })
 
 
