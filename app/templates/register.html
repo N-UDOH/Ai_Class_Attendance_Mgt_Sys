@@ -13,7 +13,6 @@
         .error { color: red; font-size: 0.9em; }
         a { color: #007bff; text-decoration: none; }
         .note { font-size: 0.8em; color: #666; margin-bottom: 15px; }
-        label { display: block; text-align: left; font-size: 0.9em; font-weight: bold; margin-top: 5px; }
     </style>
     <script>
         function toggleFields() {
@@ -24,12 +23,10 @@
             if (role === 'student') {
                 keyField.style.display = 'block';
                 levelField.style.display = 'block';
-                // Make level required when visible
                 document.getElementById('level-input').required = true;
             } else {
                 keyField.style.display = 'none';
                 levelField.style.display = 'none';
-                // Remove required attribute when hidden
                 document.getElementById('level-input').required = false;
             }
         }
@@ -47,6 +44,8 @@
         <form action="/register" method="post">
             <input type="text" name="name" placeholder="Full Name" required>
             <input type="text" name="staff_no" placeholder="Staff / Matric Number" required>
+            
+            <input type="email" name="email" placeholder="Email Address (e.g., name@wesleyuni.edu.ng)" required>
             
             <input type="text" name="college" placeholder="College (e.g., Natural & Applied Sciences)" required>
             <input type="text" name="department" placeholder="Department (e.g., Computer Science)" required>
