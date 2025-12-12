@@ -4,11 +4,19 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from datetime import datetime
 from haversine import haversine
-from app.db import get_db
+from app.db import SessionLocal  # <--- Changed this import!
 from app.models import User, ClassSession, Attendance
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+
+# --- DATABASE DEPENDENCY (Added directly here to prevent errors) ---
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 # ==========================================
 # 🎓 STUDENT DASHBOARD (SAFE MODE)
