@@ -19,6 +19,9 @@ middleware = [
 ]
 
 app = FastAPI(middleware=middleware)
+# ⚠️ WARNING: This deletes all data every time the app restarts!
+# We use this ONLY ONCE to force-fix the database structure.
+Base.metadata.drop_all(bind=engine)
 Base.metadata.create_all(bind=engine)
 templates = Jinja2Templates(directory="app/templates")
 
